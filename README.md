@@ -113,7 +113,7 @@ chunks = await kb.run("zram swap")           # 3 chunks of about 64 words
 async for chunk in kb.stream("zram swap"):   # or one at a time, as they arrive
     print(chunk.url, chunk.text)
 
-print(kb)  # DocumentSearcher('~/notes', ...) >> MinWords(7) >> Take(3) >> Window(64)
+print(kb)  # DocumentSearcher('/home/you/notes', globs=(...)) >> MinWords(7) >> Take(3) >> Window(64)
 ```
 
 | Step | What it does here |
