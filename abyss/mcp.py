@@ -7,9 +7,22 @@ tool as `<server>_<tool>`, so server "web" + tool "search" shows up as `web_sear
 
 from collections.abc import Callable, Sequence
 
-from abyss.config import Config
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from abyss.pipeline import Step, Take
 from abyss.types import Chunk
+
+
+class Settings(BaseSettings):
+    """Stock-server config. Env vars win over .env (read from the working directory); case-insensitive.
+    Unknown keys are ignored, so one .env can also hold the SearXNG and llama-server settings."""
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    searxng_url: str = "http://127.0.0.1:4243"
+    search_categories: str = "general"
+    search_timeout: float = 8.0
+    search_top_k: int = 5
 
 
 def render_chunks(chunks: Sequence[Chunk]) -> str:
@@ -43,12 +56,12 @@ class MCP:
         self.server.run("stdio")
 
 
-def build(cfg: Config | None = None) -> MCP:
+def build(settings: Settings | None = None) -> MCP:
     """The stock server: one `search` tool over SearXNG, snippets only."""
     from abyss.search import NotBlocked
     from abyss.search.searxng import SearxngSearcher
 
-    cfg = cfg or Config.from_env()
+    cfg = settings or Settings()
     search = (
         SearxngSearcher(cfg.searxng_url, categories=cfg.search_categories, timeout=cfg.search_timeout)
         >> NotBlocked()

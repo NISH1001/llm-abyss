@@ -1,12 +1,11 @@
 """Opinionated tooling around the abyss of LLMs."""
 
-from abyss.config import Config
 from abyss.pipeline import Chain, Filter, FlatMap, Map, Predicate, Step, Take, collect, once
 from abyss.search import NotBlocked, Searcher
 from abyss.types import Chunk
 
 __all__ = [
-    "Chain", "Chunk", "Config", "Filter", "FlatMap", "Map", "NotBlocked", "Predicate", "Searcher",
+    "Chain", "Chunk", "Filter", "FlatMap", "Map", "NotBlocked", "Predicate", "Searcher",
     "SearxngSearcher", "Step", "Take", "collect", "once",
 ]  # fmt: skip
 
