@@ -1,0 +1,18 @@
+# Minimal SearXNG config for abyss: JSON API on, rate limiter off (local use only).
+use_default_settings: true
+
+general:
+  instance_name: "abyss"
+  debug: false
+
+server:
+  secret_key: "overridden-by-SEARXNG_SECRET-env"
+  limiter: false
+  image_proxy: false
+  method: "GET"
+
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json

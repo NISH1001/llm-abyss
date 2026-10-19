@@ -1,0 +1,17 @@
+# SearXNG for abyss search. Bound to localhost only.  Usage: cp .env.example .env  (set SEARXNG_SECRET)
+#   docker compose up -d        docker compose logs -f searxng        docker compose down
+name: llm-abyss
+
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: abyss-searxng
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SEARXNG_PORT:-4243}:8080"
+    volumes:
+      - ./deploy/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    environment:
+      SEARXNG_BASE_URL: "http://127.0.0.1:${SEARXNG_PORT:-4243}/"
+      SEARXNG_SECRET: "${SEARXNG_SECRET:?set SEARXNG_SECRET in .env (openssl rand -hex 32)}"
+    mem_limit: 512m

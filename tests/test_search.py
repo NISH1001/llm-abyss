@@ -73,7 +73,7 @@ async def test_searxng_http_error_raises():
 
 
 def test_config_defaults_and_env_overrides():
-    assert Config().search_top_k == 5 and Config().snippet_chars == 300
+    assert Config().search_top_k == 5
     cfg = Config.from_env({"SEARCH_TOP_K": "3", "SEARXNG_URL": "http://x:1", "SEARCH_TIMEOUT": "2.5"})
     assert cfg.search_top_k == 3 and cfg.searxng_url == "http://x:1" and cfg.search_timeout == 2.5
 
@@ -85,3 +85,9 @@ def test_import_abyss_does_not_load_httpx():
     out = subprocess.run([sys.executable, "-c", "import json;" + code], capture_output=True, text=True)
     assert out.returncode == 0, out.stderr
     assert json.loads(out.stdout) == 1
+
+
+async def test_searxng_keeps_snippets_whole_by_default():
+    payload = {"results": [{"url": "https://a.com", "title": "A", "content": "y" * 900}]}
+    s = SearxngSearcher(client=_searxng(payload, []))
+    assert len((await s.search("q"))[0].text) == 900

@@ -10,7 +10,7 @@ _WS = re.compile(r"\s+")
 
 class SearxngSearcher(Searcher):
     """A self-hosted SearXNG instance with the JSON format enabled. Results come back in SearXNG's rank order,
-    each URL once, hits without a snippet dropped, snippets cut to `snippet_chars`."""
+    each URL once, hits without a snippet dropped. Snippets are kept whole unless `snippet_chars` is set."""
 
     def __init__(
         self,
@@ -18,7 +18,7 @@ class SearxngSearcher(Searcher):
         *,
         categories: str = "general",
         timeout: float = 8.0,
-        snippet_chars: int = 300,
+        snippet_chars: int | None = None,
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
@@ -40,7 +40,9 @@ class SearxngSearcher(Searcher):
         seen: set[str] = set()
         for result in response.json().get("results", []):
             url = result.get("url") or ""
-            text = _WS.sub(" ", result.get("content") or "").strip()[: self.snippet_chars]
+            text = _WS.sub(" ", result.get("content") or "").strip()
+            if self.snippet_chars:
+                text = text[: self.snippet_chars]
             if not url or not text or url in seen:
                 continue
             seen.add(url)

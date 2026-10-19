@@ -12,7 +12,6 @@ class Config:
     search_categories: str = "general"
     search_timeout: float = 8.0
     search_top_k: int = 5
-    snippet_chars: int = 300
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Config":
