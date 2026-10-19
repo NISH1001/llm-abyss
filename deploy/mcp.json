@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "web": {
+      "command": ".venv/bin/abyss-mcp",
+      "args": [],
+      "timeout_ms": 20000
+    }
+  }
+}
