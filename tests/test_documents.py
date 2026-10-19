@@ -19,6 +19,7 @@ def test_query_terms_drop_short_and_stopwords_and_dedupe():
 
 def test_hits_match_word_starts_only():
     assert [t for _, t in find_hits("helm overwhelm swapfile", ["helm", "swap"])] == ["helm", "swap"]
+    assert find_hits("any text", []) == []
 
 
 def test_title_decodes_logseq_names():
@@ -80,3 +81,21 @@ async def test_no_terms_or_no_matches_give_nothing(tmp_path):
     root = make(tmp_path, {"a.md": "some text"})
     assert await DocumentSearcher(root).run("a an the") == []
     assert await DocumentSearcher(root).run("missing") == []
+
+
+async def test_window_falls_back_to_title_words_when_nothing_else_matches():
+    c = Chunk(
+        url="Zram.md",
+        text="filler " * 50 + "zram setup notes " + "filler " * 50,
+        title="Zram",
+        meta={"query": "zram"},
+    )
+    [out] = await Window(6).run(c)
+    assert "zram setup notes" in out.text
+
+
+async def test_window_skips_query_words_already_in_the_title():
+    text = "intro - setup steps for the swapfile\n" + "filler " * 80 + "zram zram zram zram"
+    c = Chunk(url="Zram.md", text=text, title="Zram", meta={"query": "zram setup"})
+    [out] = await Window(8).run(c)
+    assert "setup steps" in out.text  # "zram" is in the title, so the window goes to "setup"

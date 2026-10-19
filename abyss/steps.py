@@ -23,8 +23,9 @@ class MinWords(Filter):
 
 class Window(Map):
     """Cut each chunk's text to `words` words around its best match for `meta["query"]` (set by every
-    searcher). No query or no match: the first `words` words. Short text passes through, whitespace
-    collapsed. Returns a new chunk; the input is left as is."""
+    searcher). Query words already in the chunk's title are skipped when the others appear in the text: the
+    title already says what the page is about, so the window goes to what the question asks. No query or no
+    match: the first `words` words. Short text passes through, whitespace collapsed. Returns a new chunk."""
 
     def __init__(self, words: int = 64) -> None:
         self.words = words
@@ -32,7 +33,10 @@ class Window(Map):
 
     def _cut(self, chunk: Chunk) -> Chunk:
         terms = query_terms(chunk.meta.get("query", ""))
-        hits = find_hits(chunk.text, terms) if terms else []
+        title = chunk.title.lower()
+        hits = find_hits(chunk.text, [t for t in terms if t not in title]) if terms else []
+        if not hits and terms:  # only title words, or nothing beyond them: fall back to every term
+            hits = find_hits(chunk.text, terms)
         return replace(chunk, text=window_around(chunk.text, hits, self.words))
 
     def __repr__(self) -> str:

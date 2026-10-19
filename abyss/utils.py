@@ -26,7 +26,9 @@ def terms_pattern(terms: list[str]) -> re.Pattern[str]:
 
 
 def find_hits(text: str, terms: list[str], pattern: re.Pattern[str] | None = None) -> list[tuple[int, str]]:
-    """(character offset, term) for every match of `terms` in `text`."""
+    """(character offset, term) for every match of `terms` in `text`. No terms: no hits."""
+    if not terms:
+        return []
     pattern = pattern or terms_pattern(terms)
     return [(m.start(), _term_of(m.group(), terms)) for m in pattern.finditer(text)]
 
