@@ -86,13 +86,14 @@ deploy/llm.sh stop
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `LLM_MODEL` | `Qwen3-1.7B-Q4_K_M.gguf` | file name in `LLM_MODELS_DIR`, or an absolute path |
+| `LLM_MODEL` | `Qwen3.5-2B-Q4_K_M.gguf` | file name in `LLM_MODELS_DIR`, or an absolute path |
 | `LLM_MODELS_DIR` | `$HOME/models` | where model files live |
 | `LLM_HOST` | `127.0.0.1` | `0.0.0.0` to reach it from other devices |
 | `LLM_PORT` | `4242` | |
 | `LLM_THREADS` | `4` | use the number of physical cores |
 | `LLM_CTX` | `4096` | context window in tokens |
 | `LLM_REASONING` | `off` | thinking mode for models that have one |
+| `LLM_SYSTEM_PROMPT` | date + trust tools + be brief | web UI's default system message; `{date}` is the start date; `none` turns it off |
 | `LLM_CORS_ORIGINS` | localhost only | browser origins allowed to use the UI and API |
 | `LLM_EXTRA_ARGS` | empty | any other llama-server flags |
 | `LLM_SESSION` | `abyss-llm` | tmux session name |
@@ -200,6 +201,11 @@ Tool results are prompt tokens, and on a CPU the prompt is usually the slow part
 - Set `LLM_THREADS` to physical cores. Hyperthreads don't help.
 - Leave `LLM_REASONING=off` unless you need it. Thinking adds a long preamble before every answer.
 - A 1.5B to 4B model at `Q4_K_M` is the practical range for 8 GB of RAM without a GPU.
+- On an older 4-core CPU without AVX2, Qwen3.5 2B at `Q4_K_M` runs at about 35 tok/s for prompts and 12 tok/s
+  for generation, and calls tools far more reliably than Qwen3 1.7B, which is faster (39 and 17 tok/s).
+- Small models often trust their training over fresh search results. The default `LLM_SYSTEM_PROMPT` gives
+  the date and says to prefer tool results, which helps. It applies to the web UI only; API clients send
+  their own system prompt, and a system message set in the browser's UI settings wins over it.
 
 ## Troubleshooting
 

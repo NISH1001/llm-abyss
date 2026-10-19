@@ -15,7 +15,7 @@ fi
 
 SESSION=${LLM_SESSION:-abyss-llm}
 MODELS_DIR=${LLM_MODELS_DIR:-$HOME/models}
-MODEL=${LLM_MODEL:-Qwen3-1.7B-Q4_K_M.gguf}
+MODEL=${LLM_MODEL:-Qwen3.5-2B-Q4_K_M.gguf}
 [[ $MODEL == /* ]] || MODEL="$MODELS_DIR/$MODEL"
 PORT=${LLM_PORT:-4242}
 CMD=(
@@ -25,6 +25,13 @@ CMD=(
   --mcp-servers-config deploy/mcp.json
   --cors-origins "${LLM_CORS_ORIGINS:-http://localhost:$PORT,http://127.0.0.1:$PORT}"
 )
+# Default system message for the web UI; {date} becomes the start date. LLM_SYSTEM_PROMPT=none turns it off.
+DEFAULT_PROMPT="Today is {date}. Your own knowledge may be out of date: for anything recent, trust tool results over memory. Answer briefly."
+PROMPT=${LLM_SYSTEM_PROMPT:-$DEFAULT_PROMPT}
+if [[ $PROMPT != none ]]; then
+  PROMPT=${PROMPT//\{date\}/$(date +%F)}
+  CMD+=(--ui-config "$(python3 -c 'import json, sys; print(json.dumps({"systemMessage": sys.argv[1]}))' "$PROMPT")")
+fi
 read -r -a EXTRA <<< "${LLM_EXTRA_ARGS:-}"  # any other llama-server flags, space separated
 CMD+=("${EXTRA[@]}")
 
