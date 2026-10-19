@@ -1,18 +1,24 @@
 """Opinionated tooling around the abyss of LLMs."""
 
+import importlib
+
 from abyss.pipeline import Chain, Filter, FlatMap, Map, Predicate, Step, Take, collect, once
 from abyss.search import NotBlocked, Searcher
 from abyss.types import Chunk
 
+# Names whose modules pull in heavy or optional deps (httpx, pydantic): imported on first access.
+_LAZY = {
+    "SearxngSearcher": "abyss.search.searxng",
+    "Settings": "abyss.settings",
+}
+
 __all__ = [
-    "Chain", "Chunk", "Filter", "FlatMap", "Map", "NotBlocked", "Predicate", "Searcher",
-    "SearxngSearcher", "Step", "Take", "collect", "once",
+    "Chain", "Chunk", "Filter", "FlatMap", "Map", "NotBlocked", "Predicate", "Searcher", "Step", "Take",
+    "collect", "once", *_LAZY,
 ]  # fmt: skip
 
 
-def __getattr__(name: str):  # lazy: heavy or optional imports load on first use
-    if name == "SearxngSearcher":
-        from abyss.search.searxng import SearxngSearcher
-
-        return SearxngSearcher
-    raise AttributeError(name)
+def __getattr__(name: str):
+    if name in _LAZY:
+        return getattr(importlib.import_module(_LAZY[name]), name)
+    raise AttributeError(f"module 'abyss' has no attribute {name!r}")

@@ -3,7 +3,8 @@ import pytest
 pytest.importorskip("mcp")
 
 from abyss import Chunk, Searcher, Take  # noqa: E402
-from abyss.mcp import MCP, Settings, build, render_chunks  # noqa: E402
+from abyss.mcp import MCP, build, render_chunks  # noqa: E402
+from abyss.settings import Settings  # noqa: E402
 
 
 class FakeSearcher(Searcher):

@@ -1,11 +1,13 @@
+import importlib
+
 from abyss.search._base import BLOCKED_DOMAINS, NotBlocked, Searcher, is_blocked
 
-__all__ = ["BLOCKED_DOMAINS", "NotBlocked", "Searcher", "SearxngSearcher", "is_blocked"]
+_LAZY = {"SearxngSearcher": "abyss.search.searxng"}  # imports httpx
+
+__all__ = ["BLOCKED_DOMAINS", "NotBlocked", "Searcher", "is_blocked", *_LAZY]
 
 
-def __getattr__(name: str):  # lazy: SearxngSearcher imports httpx
-    if name == "SearxngSearcher":
-        from abyss.search.searxng import SearxngSearcher
-
-        return SearxngSearcher
-    raise AttributeError(name)
+def __getattr__(name: str):
+    if name in _LAZY:
+        return getattr(importlib.import_module(_LAZY[name]), name)
+    raise AttributeError(f"module 'abyss.search' has no attribute {name!r}")
