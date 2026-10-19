@@ -112,3 +112,14 @@ async def test_custom_step_subclass():
 def test_chaining_non_callable_raises():
     with pytest.raises(TypeError):
         Take(1) >> 42
+
+
+def test_reprs_are_readable():
+    def double(x):
+        return x * 2
+
+    class Mine(Step):
+        pass
+
+    assert repr(Map(double) >> Take(2)) == "Map(test_reprs_are_readable.<locals>.double) >> Take(2)"
+    assert repr(Mine()) == "Mine()"

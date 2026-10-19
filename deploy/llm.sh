@@ -25,6 +25,8 @@ CMD=(
   --mcp-servers-config deploy/mcp.json
   --cors-origins "${LLM_CORS_ORIGINS:-http://localhost:$PORT,http://127.0.0.1:$PORT}"
 )
+read -r -a EXTRA <<< "${LLM_EXTRA_ARGS:-}"  # any other llama-server flags, space separated
+CMD+=("${EXTRA[@]}")
 
 running() { tmux has-session -t "$SESSION" 2>/dev/null; }
 

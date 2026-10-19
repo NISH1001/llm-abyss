@@ -38,6 +38,9 @@ class Step:
         """Feed one item, return every output."""
         return await collect(self(once(item)))
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}()"
+
 
 class Chain(Step):
     def __init__(self, *steps: Step) -> None:
@@ -59,6 +62,9 @@ class FlatMap(Step):
         self.fn = fn
         self.concurrency = concurrency
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({_name(self.fn)})"
+
     def __call__(self, items: AsyncIterator[Any]) -> AsyncIterator[Any]:
         return _concurrently(items, self.fn, self.concurrency)
 
@@ -69,6 +75,9 @@ class Map(Step):
     def __init__(self, fn: Callable[[Any], Any], concurrency: int | None = None) -> None:
         self.fn = fn
         self.concurrency = concurrency
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({_name(self.fn)})"
 
     def __call__(self, items: AsyncIterator[Any]) -> AsyncIterator[Any]:
         if not _is_async(self.fn):
@@ -87,6 +96,9 @@ class Filter(Step):
     def __init__(self, pred: Callable[[Any], Any], concurrency: int | None = None) -> None:
         self.pred = pred
         self.concurrency = concurrency
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({_name(self.pred)})"
 
     def __call__(self, items: AsyncIterator[Any]) -> AsyncIterator[Any]:
         if not _is_async(self.pred):
@@ -231,6 +243,10 @@ async def _in_order(items: AsyncIterator[Any], fn: Callable[[Any], list[Any]]) -
                 yield out
     finally:
         await _aclose(items)
+
+
+def _name(fn: Any) -> str:
+    return getattr(fn, "__qualname__", None) or type(fn).__name__
 
 
 def _is_async(fn: Any) -> bool:
