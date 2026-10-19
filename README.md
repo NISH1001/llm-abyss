@@ -89,12 +89,59 @@ stream instead of needing it passed in.
 | `Window(words=64)` | 1 → 1 | cuts text to the words around the best match for `meta["query"]` |
 | Crawler, Chunker, Ranker | chunk → chunk(s) | planned |
 
-Searching a folder of notes:
+### Example: searching a folder of notes
+
+`DocumentSearcher` is grep-style: every query scans the files, so there is no index to build or keep fresh.
+On its own it returns every matching file, best first, each with the whole file as its text:
 
 ```python
-kb = DocumentSearcher("~/notes", globs=("pages/**/*.md", "journals/**/*.md")) >> MinWords(7) >> Take(3) >> Window(64)
-chunks = await kb.run("pose estimation")
+from abyss import DocumentSearcher, MinWords, Take, Window
+
+searcher = DocumentSearcher("~/notes", globs=("pages/**/*.md", "journals/**/*.md"))
+chunks = await searcher.run("zram swap")   # every matching file, whole pages
+for c in chunks[:3]:
+    print(c.score, c.url, c.meta["terms"])
 ```
+
+Chain steps onto it to shape what comes out. Each `>>` returns a new `Chain`; the searcher itself is
+unchanged, and nothing runs until `.run()` or `.stream()`:
+
+```python
+kb = searcher >> MinWords(7) >> Take(3) >> Window(64)
+
+chunks = await kb.run("zram swap")           # 3 chunks of about 64 words
+async for chunk in kb.stream("zram swap"):   # or one at a time, as they arrive
+    print(chunk.url, chunk.text)
+
+print(kb)  # DocumentSearcher('~/notes', ...) >> MinWords(7) >> Take(3) >> Window(64)
+```
+
+| Step | What it does here |
+|---|---|
+| `searcher` | finds the files that contain the query words, best first |
+| `MinWords(7)` | drops stub pages that are only a title or a tag |
+| `Take(3)` | keeps the first three, then stops the stream |
+| `Window(64)` | cuts each page to the 64 words around its best match for the query |
+
+Order matters. `MinWords` before `Take` judges whole pages and lets `Take` fill up from the next results.
+`Window` after `Take` cuts only the pages that are kept.
+
+A chain is a plain value: build it once and run it on any query, or branch one searcher into several chains:
+
+```python
+whole_pages = searcher >> MinWords(7) >> Take(5)
+excerpts = searcher >> MinWords(7) >> Take(3) >> Window(64)   # what kb_search serves
+```
+
+How matching and ordering work:
+
+- **Matching** is case-insensitive at word starts, so "swap" finds "swapfile" and "helm" skips "overwhelm".
+  With `include_title=True` (the default) the file name is searched along with the body.
+- **Order** is a simple tally: more distinct query words first, then more hits, plus a bonus for words in
+  the file name. Very long pages that mention everything can rank high; a ranking step that accounts for
+  page length (BM25) is planned to sit between the searcher and `Take`.
+- **`Window`** skips query words already in the page's title when it picks the excerpt. On a page named
+  "Zram", the query "zram setup" shows the part about setup rather than the parts that just repeat "zram".
 
 ## Write your own component
 
