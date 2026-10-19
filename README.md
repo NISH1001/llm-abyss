@@ -83,8 +83,18 @@ stream instead of needing it passed in.
 |---|---|---|
 | `Searcher` | query → N chunks | base class: implement `search(query)` |
 | `SearxngSearcher(base_url, categories="general", timeout=8.0)` | query → N chunks | `categories="science"` for papers |
+| `DocumentSearcher(root, globs=("**/*.md",), include_title=True)` | query → N chunks | grep-style scan of local files, no index; whole file as text |
 | `NotBlocked(domains=BLOCKED_DOMAINS)` | filter | drops social and video sites |
+| `MinWords(n=7)` | filter | drops stub pages and empty snippets |
+| `Window(words=64)` | 1 → 1 | cuts text to the words around the best match for `meta["query"]` |
 | Crawler, Chunker, Ranker | chunk → chunk(s) | planned |
+
+Searching a folder of notes:
+
+```python
+kb = DocumentSearcher("~/notes", globs=("pages/**/*.md", "journals/**/*.md")) >> MinWords(7) >> Take(3) >> Window(64)
+chunks = await kb.run("pose estimation")
+```
 
 ## Write your own component
 
@@ -128,7 +138,8 @@ if __name__ == "__main__":
 
 Point any MCP client at `python my_server.py`. Pass `render=` to `add` to control the output text.
 
-The package also ships a stock server, `abyss-mcp`, with a single `search` tool built from `Settings`.
+The package also ships a stock server, `abyss-mcp <group>`, built from `Settings`: `abyss-mcp web` serves web
+search over SearXNG, and `abyss-mcp kb` serves grep-style search over a Logseq graph (`LOGSEQ_KB`).
 
 ## Settings
 
@@ -142,6 +153,8 @@ read it: they take constructor arguments, and whatever assembles them reads `Set
 | `search_categories` | `general` | search |
 | `search_timeout` | `8.0` | search |
 | `search_top_k` | `5` | search |
+| `logseq_kb` | unset | path of a Logseq graph; enables the `kb_search` tool |
+| `debug` | `false` | log per-call details to stderr |
 | `crawl_concurrency`, `crawl_timeout`, `crawl_max_bytes` | `3`, `6.0`, `1500000` | crawler (planned) |
 | `chunk_size`, `chunk_overlap`, `chunk_top_k` | `512`, `64`, `3` | chunker, ranker (planned) |
 

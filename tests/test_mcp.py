@@ -54,6 +54,6 @@ def test_settings_reject_bad_values(tmp_path, monkeypatch):
 
 
 async def test_build_uses_settings():
-    mcp = build(Settings(search_top_k=2, searxng_url="http://x:1", _env_file=None))
+    mcp = build("web", Settings(search_top_k=2, searxng_url="http://x:1", _env_file=None))
     [tool] = await mcp.server.list_tools()
     assert tool.name == "search"

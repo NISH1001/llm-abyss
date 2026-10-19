@@ -101,7 +101,14 @@ A variable set on the command line wins over `.env` for that run, for example
 `LLM_CTX=8192 deploy/llm.sh restart`.
 
 The tools come from `deploy/mcp.json`. Each entry is one MCP server, and llama-server names its tools
-`<server>_<tool>`. The stock entry runs `.venv/bin/abyss-mcp`, whose `search` tool appears as `web_search`.
+`<server>_<tool>`. The stock entries run `.venv/bin/abyss-mcp web` and `.venv/bin/abyss-mcp kb`, whose
+`search` tools appear as `web_search` and `kb_search`.
+
+`kb_search` searches a Logseq graph: set `LOGSEQ_KB` in `.env` to the graph folder. It scans `pages/` and
+`journals/` on every call (no index, about half a second for a few thousand pages once cached), drops stub
+pages, keeps the best `CHUNK_TOP_K` pages and returns about 64 words around each match. Without `LOGSEQ_KB`
+the `kb` entry fails at startup and llama-server serves the other tools. Keeping the graph in git works well:
+clone it read-only on the server and `git pull` on a timer.
 To serve your own tools, add an entry pointing at your script, as in the README's MCP example.
 
 Changes to the abyss settings in `.env` apply on the next tool call with no restart, because llama-server
