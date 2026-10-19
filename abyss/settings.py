@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     # knowledge base: a Logseq graph folder; the kb_search tool exists only when this is set
     logseq_kb: Path | None = None
+    kb_min_words: int = 7  # pages shorter than this are stubs and dropped
+    kb_window_words: int = 64  # words of each page shown to the model, around the best match
 
     # crawl (used once a crawler is in the pipeline)
     crawl_concurrency: int = 3  # pages fetched at once

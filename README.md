@@ -154,9 +154,11 @@ read it: they take constructor arguments, and whatever assembles them reads `Set
 | `search_timeout` | `8.0` | search |
 | `search_top_k` | `5` | search |
 | `logseq_kb` | unset | path of a Logseq graph; enables the `kb_search` tool |
+| `kb_min_words`, `kb_window_words` | `7`, `64` | `kb_search`: stub cutoff and excerpt length |
 | `debug` | `false` | log per-call details to stderr |
 | `crawl_concurrency`, `crawl_timeout`, `crawl_max_bytes` | `3`, `6.0`, `1500000` | crawler (planned) |
-| `chunk_size`, `chunk_overlap`, `chunk_top_k` | `512`, `64`, `3` | chunker, ranker (planned) |
+| `chunk_top_k` | `3` | `kb_search` results; later the ranker |
+| `chunk_size`, `chunk_overlap` | `512`, `64` | chunker (planned) |
 
 ## Local serving
 

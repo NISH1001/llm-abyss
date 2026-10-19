@@ -1,5 +1,7 @@
 """Opinionated tooling around the abyss of LLMs."""
 
+__version__ = "0.1.0"
+
 import importlib
 
 from loguru import logger

@@ -57,3 +57,9 @@ async def test_build_uses_settings():
     mcp = build("web", Settings(search_top_k=2, searxng_url="http://x:1", _env_file=None))
     [tool] = await mcp.server.list_tools()
     assert tool.name == "search"
+
+
+def test_kb_settings_have_defaults(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    s = Settings()
+    assert (s.kb_min_words, s.kb_window_words, s.chunk_top_k) == (7, 64, 3)

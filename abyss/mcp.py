@@ -75,9 +75,9 @@ def build_kb(cfg: Settings) -> MCP:
         raise SystemExit("abyss-mcp kb: set LOGSEQ_KB to the Logseq graph folder")
     search = (
         DocumentSearcher(cfg.logseq_kb, globs=("pages/**/*.md", "journals/**/*.md"), debug=cfg.debug)
-        >> MinWords(7)
+        >> MinWords(cfg.kb_min_words)
         >> Take(cfg.chunk_top_k)
-        >> Window(64)
+        >> Window(cfg.kb_window_words)
     )
     return MCP("kb").add(
         search,
