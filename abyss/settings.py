@@ -6,17 +6,26 @@ ignored, so one .env can also hold the SearXNG and llama-server settings. Needs 
 (in the [mcp] extra). Defaults are tuned for a small model on a CPU-only box: little context per call.
 """
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_ignore_empty=True)
+
+    debug: bool = False  # log per-call details to stderr
 
     # search
     searxng_url: str = "http://127.0.0.1:4243"
     search_categories: str = "general"  # general | science
     search_timeout: float = 8.0  # seconds; SearXNG waits on several engines
     search_top_k: int = 5  # results kept per query
+
+    # knowledge base: a Logseq graph folder; the kb_search tool exists only when this is set
+    logseq_kb: Path | None = None
+    kb_min_words: int = 7  # pages shorter than this are stubs and dropped
+    kb_window_words: int = 64  # words of each page shown to the model, around the best match
 
     # crawl (used once a crawler is in the pipeline)
     crawl_concurrency: int = 3  # pages fetched at once

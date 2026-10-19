@@ -123,3 +123,11 @@ def test_reprs_are_readable():
 
     assert repr(Map(double) >> Take(2)) == "Map(test_reprs_are_readable.<locals>.double) >> Take(2)"
     assert repr(Mine()) == "Mine()"
+
+
+def test_version_matches_package_metadata():
+    from importlib.metadata import version
+
+    import abyss
+
+    assert abyss.__version__ == version("llm-abyss") == "0.1.0"
