@@ -14,6 +14,7 @@ from abyss.types import Chunk
 # Names whose modules pull in heavy or optional deps (httpx, pydantic): imported on first access.
 _LAZY = {
     "SearxngSearch": "abyss.search.searxng",
+    "SemanticScholarSearch": "abyss.search.semantic_scholar",
     "Settings": "abyss.settings",
 }
 

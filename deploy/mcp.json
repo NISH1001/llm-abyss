@@ -9,6 +9,11 @@
       "command": ".venv/bin/abyss-mcp",
       "args": ["kb"],
       "timeout_ms": 20000
+    },
+    "papers": {
+      "command": ".venv/bin/abyss-mcp",
+      "args": ["papers"],
+      "timeout_ms": 30000
     }
   }
 }
