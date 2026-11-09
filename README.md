@@ -84,6 +84,7 @@ stream instead of needing it passed in.
 | `Search` | query → N chunks | base class: implement `search(query)` |
 | `SearxngSearch(base_url, categories="general", timeout=8.0)` | query → N chunks | `categories="science"` for papers |
 | `DocumentSearch(root, globs=("**/*.md",), include_title=True)` | query → N chunks | grep-style scan of local files, no index; whole file as text |
+| `SemanticScholarSearch(api_key=None, limit=10, min_interval=1.0)` | query → N chunks | papers; abstract as text, year/authors/citations/TLDR/PDF in `meta` |
 | `NotBlocked(domains=BLOCKED_DOMAINS)` | filter | drops social and video sites |
 | `MinWords(n=7)` | filter | drops stub pages and empty snippets |
 | `Window(words=64)` | 1 → 1 | cuts text to the words around the best match for `meta["query"]` |
@@ -143,6 +144,36 @@ How matching and ordering work:
 - **`Window`** skips query words already in the page's title when it picks the excerpt. On a page named
   "Zram", the query "zram setup" shows the part about setup rather than the parts that just repeat "zram".
 
+### Example: searching papers
+
+`SemanticScholarSearch` queries the Semantic Scholar Graph API. Each chunk is one paper: `title`, the paper
+page as `url`, the abstract as `text` (the TLDR when there is no abstract), and the rest in `meta`.
+
+```python
+from abyss import SemanticScholarSearch, Take, Window
+from abyss.settings import Settings
+
+key = Settings().semantic_scholar_api_key   # from .env.local; pass it in, components never read Settings
+api_key = key.get_secret_value() if key else None
+papers = SemanticScholarSearch(api_key, limit=10) >> Take(5)
+
+for c in await papers.run("zram compressed swap"):
+    print(c.title, c.meta.get("year"), c.meta.get("citations"), c.url)
+    print("  tldr:", c.meta.get("tldr"), "| pdf:", c.meta.get("pdf"))
+
+short = SemanticScholarSearch(api_key) >> Take(3) >> Window(64)   # 64 words of each abstract, around the query
+```
+
+| `meta` key | When |
+|---|---|
+| `engine`, `rank`, `paper_id`, `authors`, `query` | always (`authors` may be empty) |
+| `year`, `venue`, `citations`, `tldr`, `doi`, `arxiv`, `pdf` | when the API has them (`pdf`: open-access PDF link) |
+
+The API key is optional, but without one requests share a public pool that is often rate-limited (HTTP 429);
+get a key from [Semantic Scholar](https://www.semanticscholar.org/product/api#api-key-form). A key allows
+about 1 request per second, so queries run one at a time, requests start at least `min_interval` seconds
+apart, and a 429 is retried `retries=3` times with exponential backoff (`backoff=1.0`, then 2, 4 seconds).
+
 ## Write your own component
 
 Subclass the role and implement one method. Chaining, streaming and concurrency come from the base class.
@@ -186,20 +217,25 @@ if __name__ == "__main__":
 Point any MCP client at `python my_server.py`. Pass `render=` to `add` to control the output text.
 
 The package also ships a stock server, `abyss-mcp <group>`, built from `Settings`: `abyss-mcp web` serves web
-search over SearXNG, and `abyss-mcp kb` serves grep-style search over a Logseq graph (`LOGSEQ_KB`).
+search over SearXNG, `abyss-mcp kb` serves grep-style search over a Logseq graph (`LOGSEQ_KB`), and
+`abyss-mcp papers` serves Semantic Scholar paper search (`SEMANTIC_SCHOLAR_API_KEY`, optional). If a search
+is still rate-limited (HTTP 429) after its retries, the tool returns a short "try again" message instead of
+an error.
 
 ## Settings
 
 `abyss.settings.Settings` (pydantic-settings, in the `[mcp]` extra) holds project-level defaults. It reads
-`.env` from the working directory; environment variables win; unknown keys are ignored. Components never
-read it: they take constructor arguments, and whatever assembles them reads `Settings` and passes values in.
+`.env` and then `.env.local` from the working directory (`.env.local` wins; keep API keys there, both are
+git-ignored); environment variables win over both; unknown keys are ignored. Components never read it: they
+take constructor arguments, and whatever assembles them reads `Settings` and passes values in.
 
 | Setting | Default | Used by |
 |---|---|---|
 | `searxng_url` | `http://127.0.0.1:4243` | search |
 | `search_categories` | `general` | search |
 | `search_timeout` | `8.0` | search |
-| `search_top_k` | `5` | search |
+| `search_top_k` | `5` | search; also the number of papers `abyss-mcp papers` returns |
+| `semantic_scholar_api_key` | unset | `abyss-mcp papers`; a secret, hidden in reprs and logs |
 | `logseq_kb` | unset | path of a Logseq graph; enables the `kb_search` tool |
 | `kb_min_words`, `kb_window_words` | `7`, `64` | `kb_search`: stub cutoff and excerpt length |
 | `debug` | `false` | log per-call details to stderr |

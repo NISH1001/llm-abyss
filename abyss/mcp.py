@@ -8,11 +8,14 @@ tool as `<server>_<tool>`, so server "web" + tool "search" shows up as `web_sear
 import time
 from collections.abc import Callable, Sequence
 
+import httpx
 from loguru import logger
 
 from abyss.pipeline import Step, Take
 from abyss.settings import Settings
 from abyss.types import Chunk
+
+RATE_LIMITED = "The search service is rate-limiting requests right now. Try again in a few seconds."
 
 
 def render_chunks(chunks: Sequence[Chunk]) -> str:
@@ -20,6 +23,21 @@ def render_chunks(chunks: Sequence[Chunk]) -> str:
     if not chunks:
         return "No results."
     return "\n\n".join(f"{c.url}\n{c.text}" for c in chunks)
+
+
+def render_papers(chunks: Sequence[Chunk]) -> str:
+    """Per paper: title with year and citations, URL, then the TLDR (or the abstract when there is none)."""
+    if not chunks:
+        return "No results."
+    blocks: list[str] = []
+    for c in chunks:
+        info = [str(c.meta["year"])] if "year" in c.meta else []
+        if "citations" in c.meta:
+            n = c.meta["citations"]
+            info.append(f"{n} citation{'' if n == 1 else 's'}")
+        head = f"{c.title} ({', '.join(info)})" if info else c.title
+        blocks.append(f"{head}\n{c.url}\n{c.meta.get('tldr') or c.text}")
+    return "\n\n".join(blocks)
 
 
 class MCP:
@@ -38,7 +56,13 @@ class MCP:
     ) -> "MCP":
         async def tool(query: str) -> str:
             t0 = time.perf_counter()
-            items = await step.run(query)
+            try:
+                items = await step.run(query)
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code != 429:
+                    raise
+                logger.warning(f"{name}: {query!r} -> rate-limited after retries")
+                return RATE_LIMITED
             logger.info(f"{name}: {query!r} -> {len(items)} results in {time.perf_counter() - t0:.2f}s")
             return render(items)
 
@@ -91,7 +115,26 @@ def build_kb(cfg: Settings) -> MCP:
     )
 
 
-GROUPS = {"web": build_web, "kb": build_kb}
+def build_papers(cfg: Settings) -> MCP:
+    """`search` over Semantic Scholar papers. SEMANTIC_SCHOLAR_API_KEY is optional; without it, requests are
+    often rate-limited."""
+    from abyss.search.semantic_scholar import SemanticScholarSearch
+
+    key = cfg.semantic_scholar_api_key
+    search = SemanticScholarSearch(key.get_secret_value() if key else None, limit=cfg.search_top_k)
+    return MCP("papers").add(
+        search,
+        name="search",
+        description=(
+            "Search academic papers (Semantic Scholar). "
+            "Use it for research questions and to find papers to cite. "
+            "Returns title, year, citation count, URL and a one-sentence summary or abstract per paper."
+        ),
+        render=render_papers,
+    )
+
+
+GROUPS = {"web": build_web, "kb": build_kb, "papers": build_papers}
 
 
 def build(group: str = "web", settings: Settings | None = None) -> MCP:

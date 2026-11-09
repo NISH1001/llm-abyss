@@ -1,18 +1,20 @@
 """Project-level settings, read where components get assembled (the MCP server, scripts).
 Components themselves take plain constructor arguments and never read Settings.
 
-Env vars win over .env (read from the working directory); names are case-insensitive. Unknown keys are
-ignored, so one .env can also hold the SearXNG and llama-server settings. Needs pydantic-settings
+Env vars win over .env.local, which wins over .env (both read from the working directory; keep secrets such
+as API keys in .env.local). Names are case-insensitive. Unknown keys are ignored, so one .env can also hold
+the SearXNG and llama-server settings. Needs pydantic-settings
 (in the [mcp] extra). Defaults are tuned for a small model on a CPU-only box: little context per call.
 """
 
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_ignore_empty=True)
+    model_config = SettingsConfigDict(env_file=(".env", ".env.local"), extra="ignore", env_ignore_empty=True)
 
     debug: bool = False  # log per-call details to stderr
 
@@ -21,6 +23,9 @@ class Settings(BaseSettings):
     search_categories: str = "general"  # general | science
     search_timeout: float = 8.0  # seconds; SearXNG waits on several engines
     search_top_k: int = 5  # results kept per query
+
+    # papers: Semantic Scholar. Optional; without a key, requests share a public pool that often answers 429
+    semantic_scholar_api_key: SecretStr | None = None
 
     # knowledge base: a Logseq graph folder; the kb_search tool exists only when this is set
     logseq_kb: Path | None = None

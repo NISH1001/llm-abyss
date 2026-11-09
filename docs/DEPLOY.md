@@ -102,8 +102,13 @@ A variable set on the command line wins over `.env` for that run, for example
 `LLM_CTX=8192 deploy/llm.sh restart`.
 
 The tools come from `deploy/mcp.json`. Each entry is one MCP server, and llama-server names its tools
-`<server>_<tool>`. The stock entries run `.venv/bin/abyss-mcp web` and `.venv/bin/abyss-mcp kb`, whose
-`search` tools appear as `web_search` and `kb_search`.
+`<server>_<tool>`. The stock entries run `.venv/bin/abyss-mcp web`, `kb` and `papers`, whose `search` tools
+appear as `web_search`, `kb_search` and `papers_search`.
+
+`papers_search` searches Semantic Scholar and returns `SEARCH_TOP_K` papers, each as title, year, citation
+count, URL and its TLDR or abstract. Put `SEMANTIC_SCHOLAR_API_KEY` in `.env.local`: without a key it works
+but is often rate-limited. When a search is still rate-limited after its retries, the tool tells the model to
+try again shortly instead of failing.
 
 `kb_search` searches a Logseq graph: set `LOGSEQ_KB` in `.env` to the graph folder. It scans `pages/` and
 `journals/` on every call (no index, about half a second for a few thousand pages once cached), drops stub
