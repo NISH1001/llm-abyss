@@ -11,7 +11,7 @@ BLOCKED_DOMAINS = (
 )  # fmt: skip
 
 
-class Searcher(Step):
+class Search(Step):
     """query -> N chunks, text = snippet. Implement `search`; streaming and chaining come from Step.
     Every chunk gets `meta["query"]`, so later steps (a ranker) can read the query from the stream."""
 

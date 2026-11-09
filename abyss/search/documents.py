@@ -14,18 +14,18 @@ from urllib.parse import unquote
 
 from loguru import logger
 
-from abyss.search._base import Searcher
+from abyss.search._base import Search
 from abyss.types import Chunk
 from abyss.utils import find_hits, query_terms, terms_pattern
 
 
-class DocumentSearcher(Searcher):
+class DocumentSearch(Search):
     """Grep-style search: query -> files under `root` containing the query words, best first.
 
     `globs` are relative to `root` (`**` allowed). `include_title` searches the file name with the body and
     boosts files whose name matches. `debug=True` logs scan stats through loguru.
 
-        DocumentSearcher("~/notes") >> MinWords(7) >> Take(5) >> Window(64)
+        DocumentSearch("~/notes") >> MinWords(7) >> Take(5) >> Window(64)
     """
 
     def __init__(
@@ -90,7 +90,7 @@ class DocumentSearcher(Searcher):
         return list(found)
 
     def __repr__(self) -> str:
-        return f"DocumentSearcher({str(self.root)!r}, globs={self.globs})"
+        return f"DocumentSearch({str(self.root)!r}, globs={self.globs})"
 
 
 def title_of(path: Path) -> str:

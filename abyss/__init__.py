@@ -1,25 +1,25 @@
 """Opinionated tooling around the abyss of LLMs."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 import importlib
 
 from loguru import logger
 
 from abyss.pipeline import Chain, Filter, FlatMap, Map, Predicate, Step, Take, collect, once
-from abyss.search import DocumentSearcher, NotBlocked, Searcher
+from abyss.search import DocumentSearch, NotBlocked, Search
 from abyss.steps import MinWords, Window
 from abyss.types import Chunk
 
 # Names whose modules pull in heavy or optional deps (httpx, pydantic): imported on first access.
 _LAZY = {
-    "SearxngSearcher": "abyss.search.searxng",
+    "SearxngSearch": "abyss.search.searxng",
     "Settings": "abyss.settings",
 }
 
 __all__ = [
-    "Chain", "Chunk", "DocumentSearcher", "Filter", "FlatMap", "Map", "MinWords", "NotBlocked", "Predicate",
-    "Searcher", "Step", "Take", "Window", "collect", "once", *_LAZY,
+    "Chain", "Chunk", "DocumentSearch", "Filter", "FlatMap", "Map", "MinWords", "NotBlocked", "Predicate",
+    "Search", "Step", "Take", "Window", "collect", "once", *_LAZY,
 ]  # fmt: skip
 
 

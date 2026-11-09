@@ -1,4 +1,4 @@
-"""Chunk steps for any chain: `searcher >> MinWords(7) >> Take(5) >> Window(64)`."""
+"""Chunk steps for any chain: `search >> MinWords(7) >> Take(5) >> Window(64)`."""
 
 from dataclasses import replace
 
@@ -22,8 +22,8 @@ class MinWords(Filter):
 
 
 class Window(Map):
-    """Cut each chunk's text to `words` words around its best match for `meta["query"]` (set by every
-    searcher). Query words already in the chunk's title are skipped when the others appear in the text: the
+    """Cut each chunk's text to `words` words around its best match for `meta["query"]` (set by every `Search`
+    step). Query words already in the chunk's title are skipped when the others appear in the text: the
     title already says what the page is about, so the window goes to what the question asks. No query or no
     match: the first `words` words. Short text passes through, whitespace collapsed. Returns a new chunk."""
 

@@ -52,10 +52,10 @@ class MCP:
 def build_web(cfg: Settings) -> MCP:
     """`search` over SearXNG, snippets only."""
     from abyss.search import NotBlocked
-    from abyss.search.searxng import SearxngSearcher
+    from abyss.search.searxng import SearxngSearch
 
     search = (
-        SearxngSearcher(cfg.searxng_url, categories=cfg.search_categories, timeout=cfg.search_timeout)
+        SearxngSearch(cfg.searxng_url, categories=cfg.search_categories, timeout=cfg.search_timeout)
         >> NotBlocked()
         >> Take(cfg.search_top_k)
     )
@@ -68,13 +68,13 @@ def build_web(cfg: Settings) -> MCP:
 
 def build_kb(cfg: Settings) -> MCP:
     """`search` over a Logseq graph: pages and journals, stub pages dropped."""
-    from abyss.search.documents import DocumentSearcher
+    from abyss.search.documents import DocumentSearch
     from abyss.steps import MinWords, Window
 
     if cfg.logseq_kb is None:
         raise SystemExit("abyss-mcp kb: set LOGSEQ_KB to the Logseq graph folder")
     search = (
-        DocumentSearcher(cfg.logseq_kb, globs=("pages/**/*.md", "journals/**/*.md"), debug=cfg.debug)
+        DocumentSearch(cfg.logseq_kb, globs=("pages/**/*.md", "journals/**/*.md"), debug=cfg.debug)
         >> MinWords(cfg.kb_min_words)
         >> Take(cfg.chunk_top_k)
         >> Window(cfg.kb_window_words)

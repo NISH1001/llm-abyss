@@ -1,11 +1,11 @@
 import importlib
 
-from abyss.search._base import BLOCKED_DOMAINS, NotBlocked, Searcher, is_blocked
-from abyss.search.documents import DocumentSearcher
+from abyss.search._base import BLOCKED_DOMAINS, NotBlocked, Search, is_blocked
+from abyss.search.documents import DocumentSearch
 
-_LAZY = {"SearxngSearcher": "abyss.search.searxng"}  # imports httpx
+_LAZY = {"SearxngSearch": "abyss.search.searxng"}  # imports httpx
 
-__all__ = ["BLOCKED_DOMAINS", "DocumentSearcher", "NotBlocked", "Searcher", "is_blocked", *_LAZY]
+__all__ = ["BLOCKED_DOMAINS", "DocumentSearch", "NotBlocked", "Search", "is_blocked", *_LAZY]
 
 
 def __getattr__(name: str):

@@ -4,7 +4,7 @@ Opinionated tooling around the abyss of LLMs: composable, async-first retrieval 
 
 The repo has two parts:
 
-1. **`abyss`, the library.** Small components (searchers, filters, and soon crawlers, chunkers and rankers)
+1. **`abyss`, the library.** Small components (search steps, filters, and soon crawlers, chunkers and rankers)
    that snap together into streaming pipelines with `>>`. The core depends only on `httpx`.
 2. **Local serving.** SearXNG in Docker plus a llama.cpp server whose web UI can call abyss pipelines as
    tools. See [docs/DEPLOY.md](docs/DEPLOY.md).
@@ -22,9 +22,9 @@ SearXNG instance with the JSON format enabled:
 ```bash
 uv run --with "llm-abyss @ git+https://github.com/NISH1001/llm-abyss" python -c '
 import asyncio
-from abyss import SearxngSearcher, NotBlocked, Take
+from abyss import SearxngSearch, NotBlocked, Take
 
-search = SearxngSearcher("http://127.0.0.1:4243") >> NotBlocked() >> Take(3)
+search = SearxngSearch("http://127.0.0.1:4243") >> NotBlocked() >> Take(3)
 for c in asyncio.run(search.run("what is zram")):
     print(c.url, "|", c.text)'
 ```
@@ -35,7 +35,7 @@ Everything is a **Step**: something that turns an async stream of items into ano
 chains steps into a new step, and building a chain runs nothing.
 
 ```python
-search = SearxngSearcher(url) >> NotBlocked() >> Take(5)
+search = SearxngSearch(url) >> NotBlocked() >> Take(5)
 
 chunks = await search.run("zram vs zswap")         # list of everything
 async for chunk in search.stream("zram vs zswap"):  # items as they arrive
@@ -64,7 +64,7 @@ class Chunk:
     meta: dict = field(default_factory=dict)  # query, engine, rank, date, ...
 ```
 
-Searchers tag each chunk with `meta["query"]`, so later steps (a ranker) can read the query from the
+Search steps tag each chunk with `meta["query"]`, so later steps (a ranker) can read the query from the
 stream instead of needing it passed in.
 
 ### Building blocks
@@ -81,9 +81,9 @@ stream instead of needing it passed in.
 
 | Component | Shape | Status |
 |---|---|---|
-| `Searcher` | query → N chunks | base class: implement `search(query)` |
-| `SearxngSearcher(base_url, categories="general", timeout=8.0)` | query → N chunks | `categories="science"` for papers |
-| `DocumentSearcher(root, globs=("**/*.md",), include_title=True)` | query → N chunks | grep-style scan of local files, no index; whole file as text |
+| `Search` | query → N chunks | base class: implement `search(query)` |
+| `SearxngSearch(base_url, categories="general", timeout=8.0)` | query → N chunks | `categories="science"` for papers |
+| `DocumentSearch(root, globs=("**/*.md",), include_title=True)` | query → N chunks | grep-style scan of local files, no index; whole file as text |
 | `NotBlocked(domains=BLOCKED_DOMAINS)` | filter | drops social and video sites |
 | `MinWords(n=7)` | filter | drops stub pages and empty snippets |
 | `Window(words=64)` | 1 → 1 | cuts text to the words around the best match for `meta["query"]` |
@@ -91,34 +91,34 @@ stream instead of needing it passed in.
 
 ### Example: searching a folder of notes
 
-`DocumentSearcher` is grep-style: every query scans the files, so there is no index to build or keep fresh.
+`DocumentSearch` is grep-style: every query scans the files, so there is no index to build or keep fresh.
 On its own it returns every matching file, best first, each with the whole file as its text:
 
 ```python
-from abyss import DocumentSearcher, MinWords, Take, Window
+from abyss import DocumentSearch, MinWords, Take, Window
 
-searcher = DocumentSearcher("~/notes", globs=("pages/**/*.md", "journals/**/*.md"))
-chunks = await searcher.run("zram swap")   # every matching file, whole pages
+notes = DocumentSearch("~/notes", globs=("pages/**/*.md", "journals/**/*.md"))
+chunks = await notes.run("zram swap")   # every matching file, whole pages
 for c in chunks[:3]:
     print(c.score, c.url, c.meta["terms"])
 ```
 
-Chain steps onto it to shape what comes out. Each `>>` returns a new `Chain`; the searcher itself is
+Chain steps onto it to shape what comes out. Each `>>` returns a new `Chain`; `notes` itself is
 unchanged, and nothing runs until `.run()` or `.stream()`:
 
 ```python
-kb = searcher >> MinWords(7) >> Take(3) >> Window(64)
+kb = notes >> MinWords(7) >> Take(3) >> Window(64)
 
 chunks = await kb.run("zram swap")           # 3 chunks of about 64 words
 async for chunk in kb.stream("zram swap"):   # or one at a time, as they arrive
     print(chunk.url, chunk.text)
 
-print(kb)  # DocumentSearcher('/home/you/notes', globs=(...)) >> MinWords(7) >> Take(3) >> Window(64)
+print(kb)  # DocumentSearch('/home/you/notes', globs=(...)) >> MinWords(7) >> Take(3) >> Window(64)
 ```
 
 | Step | What it does here |
 |---|---|
-| `searcher` | finds the files that contain the query words, best first |
+| `notes` | finds the files that contain the query words, best first |
 | `MinWords(7)` | drops stub pages that are only a title or a tag |
 | `Take(3)` | keeps the first three, then stops the stream |
 | `Window(64)` | cuts each page to the 64 words around its best match for the query |
@@ -126,11 +126,11 @@ print(kb)  # DocumentSearcher('/home/you/notes', globs=(...)) >> MinWords(7) >> 
 Order matters. `MinWords` before `Take` judges whole pages and lets `Take` fill up from the next results.
 `Window` after `Take` cuts only the pages that are kept.
 
-A chain is a plain value: build it once and run it on any query, or branch one searcher into several chains:
+A chain is a plain value: build it once and run it on any query, or branch one search into several chains:
 
 ```python
-whole_pages = searcher >> MinWords(7) >> Take(5)
-excerpts = searcher >> MinWords(7) >> Take(3) >> Window(64)   # what kb_search serves
+whole_pages = notes >> MinWords(7) >> Take(5)
+excerpts = notes >> MinWords(7) >> Take(3) >> Window(64)   # what kb_search serves
 ```
 
 How matching and ordering work:
@@ -139,7 +139,7 @@ How matching and ordering work:
   With `include_title=True` (the default) the file name is searched along with the body.
 - **Order** is a simple tally: more distinct query words first, then more hits, plus a bonus for words in
   the file name. Very long pages that mention everything can rank high; a ranking step that accounts for
-  page length (BM25) is planned to sit between the searcher and `Take`.
+  page length (BM25) is planned to sit between the search and `Take`.
 - **`Window`** skips query words already in the page's title when it picks the excerpt. On a page named
   "Zram", the query "zram setup" shows the part about setup rather than the parts that just repeat "zram".
 
@@ -148,16 +148,16 @@ How matching and ordering work:
 Subclass the role and implement one method. Chaining, streaming and concurrency come from the base class.
 
 ```python
-from abyss import Chunk, Searcher, Take
+from abyss import Chunk, Search, Take
 
-class NotesSearcher(Searcher):
+class NotesSearch(Search):
     async def search(self, query: str) -> list[Chunk]:
         return [Chunk(url="file:///notes.md", text=f"my notes about {query}")]
 
-notes = NotesSearcher() >> Take(5)   # chains like any other step
+notes = NotesSearch() >> Take(5)   # chains like any other step
 ```
 
-For a step that is not a searcher, subclass `Map`, `FlatMap` or `Filter`, or subclass `Step` and implement
+For a step that is not a search, subclass `Map`, `FlatMap` or `Filter`, or subclass `Step` and implement
 `__call__(items) -> AsyncIterator`.
 
 ## Serve steps as MCP tools
@@ -168,12 +168,12 @@ small.
 
 ```python
 # my_server.py
-from abyss import NotBlocked, SearxngSearcher, Settings, Take
+from abyss import NotBlocked, SearxngSearch, Settings, Take
 from abyss.mcp import MCP
 
 s = Settings()  # .env and env vars
-web = SearxngSearcher(s.searxng_url) >> NotBlocked() >> Take(s.search_top_k)
-papers = SearxngSearcher(s.searxng_url, categories="science") >> Take(3)
+web = SearxngSearch(s.searxng_url) >> NotBlocked() >> Take(s.search_top_k)
+papers = SearxngSearch(s.searxng_url, categories="science") >> Take(3)
 
 mcp = MCP("abyss")
 mcp.add(web, name="web_search", description="Search the web. Returns URL and snippet per result.")

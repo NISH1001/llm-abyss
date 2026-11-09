@@ -2,13 +2,13 @@ import re
 
 import httpx
 
-from abyss.search._base import Searcher
+from abyss.search._base import Search
 from abyss.types import Chunk
 
 _WS = re.compile(r"\s+")
 
 
-class SearxngSearcher(Searcher):
+class SearxngSearch(Search):
     """A self-hosted SearXNG instance with the JSON format enabled. Results come back in SearXNG's rank order,
     each URL once, hits without a snippet dropped. Snippets are kept whole unless `snippet_chars` is set."""
 
@@ -53,4 +53,4 @@ class SearxngSearcher(Searcher):
         return chunks
 
     def __repr__(self) -> str:
-        return f"SearxngSearcher({self.base_url!r}, categories={self.categories!r})"
+        return f"SearxngSearch({self.base_url!r}, categories={self.categories!r})"
