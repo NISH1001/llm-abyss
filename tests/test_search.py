@@ -4,11 +4,11 @@ import sys
 import httpx
 import pytest
 
-from abyss import Chunk, NotBlocked, Searcher, SearxngSearcher, Take
+from abyss import Chunk, NotBlocked, Search, SearxngSearch, Take
 from abyss.search import is_blocked
 
 
-class FakeSearcher(Searcher):
+class FakeSearch(Search):
     def __init__(self, urls):
         self.urls = urls
 
@@ -16,8 +16,8 @@ class FakeSearcher(Searcher):
         return [Chunk(url=u, text=f"{query} snippet {i}") for i, u in enumerate(self.urls)]
 
 
-async def test_searcher_chains_and_tags_query():
-    s = FakeSearcher(["https://a.com", "https://youtube.com/x", "https://b.com", "https://c.com"])
+async def test_search_chains_and_tags_query():
+    s = FakeSearch(["https://a.com", "https://youtube.com/x", "https://b.com", "https://c.com"])
     chunks = await (s >> NotBlocked() >> Take(2)).run("zram")
     assert [c.url for c in chunks] == ["https://a.com", "https://b.com"]
     assert all(c.meta["query"] == "zram" for c in chunks)
@@ -53,7 +53,7 @@ async def test_searxng_parses_dedups_truncates_and_drops_empty():
         ]
     }
     seen = []
-    s = SearxngSearcher("http://searx:8080/", snippet_chars=300, client=_searxng(payload, seen))
+    s = SearxngSearch("http://searx:8080/", snippet_chars=300, client=_searxng(payload, seen))
     chunks = await s.search("zram")
 
     assert [c.url for c in chunks] == ["https://a.com", "https://c.com"]
@@ -68,7 +68,7 @@ async def test_searxng_parses_dedups_truncates_and_drops_empty():
 async def test_searxng_http_error_raises():
     client = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(503)))
     with pytest.raises(httpx.HTTPStatusError):
-        await SearxngSearcher(client=client).search("q")
+        await SearxngSearch(client=client).search("q")
 
 
 def test_import_abyss_does_not_load_heavy_deps():

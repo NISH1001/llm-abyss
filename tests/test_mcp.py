@@ -2,12 +2,12 @@ import pytest
 
 pytest.importorskip("mcp")
 
-from abyss import Chunk, Searcher, Take  # noqa: E402
+from abyss import Chunk, Search, Take  # noqa: E402
 from abyss.mcp import MCP, build, render_chunks  # noqa: E402
 from abyss.settings import Settings  # noqa: E402
 
 
-class FakeSearcher(Searcher):
+class FakeSearch(Search):
     async def search(self, query):
         return [Chunk(url=f"https://{i}.com", text=f"{query} {i}", title="t") for i in range(5)]
 
@@ -19,7 +19,7 @@ def test_render_is_url_and_text_only():
 
 
 async def test_step_becomes_tool_with_query_only_schema_and_text_output():
-    mcp = MCP("web").add(FakeSearcher() >> Take(2), name="search", description="Search the web.")
+    mcp = MCP("web").add(FakeSearch() >> Take(2), name="search", description="Search the web.")
     [tool] = await mcp.server.list_tools()
     assert tool.name == "search" and tool.description == "Search the web."
     assert tool.input_schema["required"] == ["query"] and list(tool.input_schema["properties"]) == ["query"]

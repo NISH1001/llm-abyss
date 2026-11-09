@@ -1,4 +1,4 @@
-"""Small text helpers shared by searchers and steps."""
+"""Small text helpers shared by search steps and steps."""
 
 import re
 from bisect import bisect_right
