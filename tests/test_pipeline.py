@@ -130,4 +130,4 @@ def test_version_matches_package_metadata():
 
     import abyss
 
-    assert abyss.__version__ == version("llm-abyss") == "0.1.0"
+    assert abyss.__version__ == version("llm-abyss")
